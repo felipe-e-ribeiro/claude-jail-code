@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/feliperibeiro95/claude-jail-code"
+    "url": "https://github.com/felipe-e-ribeiro/claude-jail-code"
   },
   "categories": ["Other"],
   "activationEvents": ["onStartupFinished"],

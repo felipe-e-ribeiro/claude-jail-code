@@ -4,7 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 
 const FALLBACK_IMAGE = 'feliperibeiro95/claude-jail-code:v0.0.1';
-const VERSIONS_URL = 'https://raw.githubusercontent.com/feliperibeiro95/claude-jail-code/main/versions.json';
+const VERSIONS_URL = 'https://raw.githubusercontent.com/felipe-e-ribeiro/claude-jail-code/main/versions.json';
 
 let cachedImage: string | undefined;
 

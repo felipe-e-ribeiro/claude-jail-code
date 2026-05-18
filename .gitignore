@@ -1,0 +1,6 @@
+.claude/
+docs/superpowers/
+.mcp.json
+*.vsix
+node_modules/
+out/

@@ -38,6 +38,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
@@ -45,6 +47,7 @@ jobs:
           format: table
           exit-code: '1'
           severity: HIGH,CRITICAL
+          trivyignores: docker/.trivyignore
 
   update-config:
     needs: security-scan

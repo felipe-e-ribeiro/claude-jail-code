@@ -2,13 +2,17 @@ import * as vscode from 'vscode';
 import * as container from './container';
 import * as remote from './remote';
 
+let outputChannel: vscode.OutputChannel;
+
 export function activate(context: vscode.ExtensionContext) {
+  outputChannel = vscode.window.createOutputChannel('Claude Container');
+
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBar.text = '⬡ Claude Container';
   statusBar.tooltip = 'Gerenciar Claude Container';
   statusBar.command = 'claude-container.menu';
   statusBar.show();
-  context.subscriptions.push(statusBar);
+  context.subscriptions.push(statusBar, outputChannel);
 
   context.subscriptions.push(
     vscode.commands.registerCommand('claude-container.menu', showMenu),
@@ -36,6 +40,7 @@ async function showMenu(): Promise<void> {
     { label: '▶  Abrir no Claude Container', command: 'claude-container.open' },
     { label: '■  Parar container',            command: 'claude-container.stop' },
     { label: '⟳  Recriar container',          command: 'claude-container.recreate' },
+    { label: '📋  Mostrar log',               command: 'claude-container.showLog' },
   ];
 
   const selected = await vscode.window.showQuickPick(items, {
@@ -52,18 +57,23 @@ async function openContainer(): Promise<void> {
   if (!workspacePath) { return; }
 
   const name = container.getContainerName(workspacePath);
+  outputChannel.appendLine(`\n[${new Date().toISOString()}] openContainer`);
+  outputChannel.appendLine(`  workspacePath: "${workspacePath}"`);
+  outputChannel.appendLine(`  containerName: "${name}"`);
 
   await vscode.window.withProgress(
     { location: vscode.ProgressLocation.Notification, title: `Claude Container: ${name}`, cancellable: false },
     async (progress) => {
       try {
         const status = container.getStatus(name);
+        outputChannel.appendLine(`  status: exists=${status.exists} running=${status.running}`);
 
         if (!status.exists) {
           progress.report({ message: 'Resolvendo imagem...' });
           const image = await container.resolveImage(getImageOverride());
+          outputChannel.appendLine(`  image: "${image}"`);
           progress.report({ message: 'Criando container...' });
-          container.create(name, workspacePath, image);
+          container.create(name, workspacePath, image, (line) => outputChannel.appendLine(`  ${line}`));
         } else if (!status.running) {
           progress.report({ message: 'Iniciando container...' });
           container.start(name);
@@ -105,7 +115,9 @@ async function recreateContainer(): Promise<void> {
   try {
     container.remove(name);
     const image = await container.resolveImage(getImageOverride());
-    container.create(name, workspacePath, image);
+    outputChannel.appendLine(`\n[${new Date().toISOString()}] recreateContainer`);
+    outputChannel.appendLine(`  image: "${image}"`);
+    container.create(name, workspacePath, image, (line) => outputChannel.appendLine(`  ${line}`));
     vscode.window.showInformationMessage(`Container ${name} recriado com sucesso.`);
   } catch (err: any) {
     handleError(err);
@@ -114,6 +126,10 @@ async function recreateContainer(): Promise<void> {
 
 function handleError(err: any): void {
   const msg: string = (err?.stderr?.toString() || err?.message || String(err));
+  outputChannel.appendLine(`[ERROR] ${msg}`);
+  outputChannel.show(true);
+
+  const firstLine = msg.split('\n')[0];
 
   if (msg.includes('error during connect') || msg.includes('Cannot connect') || msg.includes('daemon')) {
     vscode.window.showErrorMessage('Docker Desktop não está rodando. Inicie-o e tente novamente.');
@@ -136,7 +152,9 @@ function handleError(err: any): void {
       }
     });
   } else {
-    vscode.window.showErrorMessage(`Claude Container: ${msg}`);
+    vscode.window.showErrorMessage(`Claude Container: ${firstLine}`, 'Ver Log').then(action => {
+      if (action === 'Ver Log') { outputChannel.show(); }
+    });
   }
 }
 

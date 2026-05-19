@@ -66,23 +66,36 @@ export function getStatus(name: string): ContainerStatus {
   }
 }
 
-export function create(name: string, workspacePath: string, image: string): void {
+function toDockerPath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
+export function create(name: string, workspacePath: string, image: string, log?: (s: string) => void): void {
   if (!image || !image.trim()) {
     throw new Error('Nome da imagem Docker não resolvido. Configure claudeContainer.image nas Settings.');
   }
 
   const claudePath = path.join(os.homedir(), '.claude');
 
-  execFileSync('docker', [
+  const args = [
     'run', '-d',
     '--name', name,
     '--entrypoint', '/bin/bash',
-    '-v', `${workspacePath}:/workspace`,
-    '-v', `${claudePath}:/root/.claude`,
+    '-v', `${toDockerPath(workspacePath)}:/workspace`,
+    '-v', `${toDockerPath(claudePath)}:/root/.claude`,
     '-w', '/workspace',
     image,
     '-c', 'npm install -g @anthropic-ai/claude-code@latest --silent 2>/dev/null; tail -f /dev/null',
-  ], { stdio: ['pipe', 'pipe', 'pipe'] });
+  ];
+
+  log?.(`[CMD] docker ${args.join(' ')}`);
+
+  try {
+    execFileSync('docker', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (e: any) {
+    const stderr = (e.stderr?.toString() || '').trim();
+    throw new Error(`${stderr}\n[CMD] docker ${args.join(' ')}`);
+  }
 }
 
 export function start(name: string): void {

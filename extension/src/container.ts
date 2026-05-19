@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync, execSync } from 'child_process';
 import * as https from 'https';
 import * as os from 'os';
 import * as path from 'path';
@@ -18,8 +18,9 @@ export function getContainerName(workspacePath: string): string {
 }
 
 export async function resolveImage(override?: string): Promise<string> {
-  if (override && override.trim()) {
-    return override.trim();
+  const configured = (override || '').trim();
+  if (configured) {
+    return configured;
   }
   if (cachedImage) {
     return cachedImage;
@@ -41,7 +42,7 @@ function fetchImage(): Promise<string> {
       res.on('end', () => {
         try {
           const json = JSON.parse(data);
-          if (json.image) { resolve(json.image); }
+          if (json.image && json.image.trim()) { resolve(json.image.trim()); }
           else { reject(new Error('No image field in versions.json')); }
         } catch {
           reject(new Error('Invalid JSON from versions.json'));
@@ -66,37 +67,32 @@ export function getStatus(name: string): ContainerStatus {
 }
 
 export function create(name: string, workspacePath: string, image: string): void {
-  const claudePath = path.join(os.homedir(), '.claude');
-  const wsPath = workspacePath.replace(/\\/g, '/');
-  const clPath = claudePath.replace(/\\/g, '/');
+  if (!image || !image.trim()) {
+    throw new Error('Nome da imagem Docker não resolvido. Configure claudeContainer.image nas Settings.');
+  }
 
-  run(
-    `docker run -d --name ${name}` +
-    ` --entrypoint /bin/bash` +
-    ` -v "${wsPath}:/workspace"` +
-    ` -v "${clPath}:/root/.claude"` +
-    ` -w /workspace` +
-    ` ${image}` +
-    ` -c "npm install -g @anthropic-ai/claude-code@latest --silent 2>/dev/null; tail -f /dev/null"`
-  );
+  const claudePath = path.join(os.homedir(), '.claude');
+
+  execFileSync('docker', [
+    'run', '-d',
+    '--name', name,
+    '--entrypoint', '/bin/bash',
+    '-v', `${workspacePath}:/workspace`,
+    '-v', `${claudePath}:/root/.claude`,
+    '-w', '/workspace',
+    image,
+    '-c', 'npm install -g @anthropic-ai/claude-code@latest --silent 2>/dev/null; tail -f /dev/null',
+  ], { stdio: ['pipe', 'pipe', 'pipe'] });
 }
 
 export function start(name: string): void {
-  run(`docker start ${name}`);
+  execFileSync('docker', ['start', name], { stdio: ['pipe', 'pipe', 'pipe'] });
 }
 
 export function stop(name: string): void {
-  run(`docker stop ${name}`);
+  execFileSync('docker', ['stop', name], { stdio: ['pipe', 'pipe', 'pipe'] });
 }
 
 export function remove(name: string): void {
-  run(`docker rm -f ${name}`);
-}
-
-function run(cmd: string): void {
-  try {
-    execSync(cmd, { stdio: ['pipe', 'pipe', 'pipe'], encoding: 'utf8' });
-  } catch (e: any) {
-    throw new Error(e.stderr || e.stdout || e.message);
-  }
+  execFileSync('docker', ['rm', '-f', name], { stdio: ['pipe', 'pipe', 'pipe'] });
 }

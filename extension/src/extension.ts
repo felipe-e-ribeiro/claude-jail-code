@@ -113,7 +113,7 @@ async function recreateContainer(): Promise<void> {
 }
 
 function handleError(err: any): void {
-  const msg: string = (err?.message ?? String(err));
+  const msg: string = (err?.stderr?.toString() || err?.message || String(err));
 
   if (msg.includes('error during connect') || msg.includes('Cannot connect') || msg.includes('daemon')) {
     vscode.window.showErrorMessage('Docker Desktop não está rodando. Inicie-o e tente novamente.');

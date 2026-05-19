@@ -1,0 +1,13 @@
+# CVE-2026-46333 — linux-libc-dev (HIGH)
+# Kernel headers package, dependência transitiva obrigatória de libc6-dev → gcc → build-essential.
+# Status: affected, sem fix upstream disponível.
+# Impacto: requer acesso local para explorar (leitura de arquivos root por usuário não privilegiado).
+# Decisão: aceito — não há como remover sem quebrar toolchain de compilação.
+CVE-2026-46333
+
+# CVE-2026-33671 — picomatch (HIGH)
+# ReDoS via padrões extglob maliciosos no npm bundled (tooling interno, não runtime).
+# Status: fixed em picomatch >= 4.0.4, mas npm do NodeSource não permite self-update.
+# Impacto: afeta operações npm com input malicioso — não é código que executa nos containers.
+# Decisão: aceito — vulnerabilidade em tooling de build, não na aplicação em execução.
+CVE-2026-33671

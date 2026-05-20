@@ -37,6 +37,7 @@ def to_docker_path(path: "Path | str") -> str:
 def build_docker_cmd(
     image: str,
     claude_dir: Path,
+    agents_dir: Path,
     workspace: Path,
     is_tty: bool,
     no_update: bool,
@@ -49,6 +50,7 @@ def build_docker_cmd(
         "--rm",
         "-it" if is_tty else "-i",
         "-v", f"{to_docker_path(claude_dir)}:/root/.claude:rw",
+        "-v", f"{to_docker_path(agents_dir)}:/root/.agents:rw",
         "-v", f"{to_docker_path(workspace)}:/workspace:rw",
         "-w", "/workspace",
         image,
@@ -104,12 +106,14 @@ examples:
         extra_args = extra_args[1:]
 
     claude_dir = Path.home() / ".claude"
+    agents_dir = Path.home() / ".agents"
     workspace = Path.cwd()
     is_tty = sys.stdin.isatty()
 
     cmd = build_docker_cmd(
         image=args.image,
         claude_dir=claude_dir,
+        agents_dir=agents_dir,
         workspace=workspace,
         is_tty=is_tty,
         no_update=args.no_update,

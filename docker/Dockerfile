@@ -18,8 +18,12 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 RUN npm install -g @anthropic-ai/claude-code
 
+RUN useradd -m -u 1000 -s /bin/bash claude
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /workspace && chown claude:claude /workspace
 
 WORKDIR /workspace
 

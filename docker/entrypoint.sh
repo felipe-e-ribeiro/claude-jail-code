@@ -18,4 +18,4 @@ if [ "$NO_UPDATE" = false ]; then
         || echo "[entrypoint] Sem atualização disponível, usando versão instalada."
 fi
 
-exec claude "${PASSTHROUGH[@]}"
+exec runuser -u claude -- claude "${PASSTHROUGH[@]}"

@@ -66,32 +66,8 @@ jobs:
           severity: HIGH,CRITICAL
           trivyignores: docker/.trivyignore
 
-  update-versions:
-    needs: security-scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update versions.json
-        run: |
-          echo '{"image":"feliperibeiro95/claude-jail-code:${{ needs.docker-build.outputs.tag }}"}' > versions.json
-
-      - name: Commit and push
-        run: |
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git config user.name "github-actions[bot]"
-          git add versions.json
-          git commit -m "chore: update versions.json to ${{ needs.docker-build.outputs.tag }}"
-          git push origin main
-
   create-release:
-    needs: update-versions
+    needs: security-scan
     runs-on: ubuntu-latest
     permissions:
       contents: write

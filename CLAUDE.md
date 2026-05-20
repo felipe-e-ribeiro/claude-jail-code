@@ -63,11 +63,7 @@ O arquivo usa `importlib.util` para importar `claude-jail.py` (hífen no nome im
 ### CI/CD
 
 - **`ci.yml`** — só em `pull_request` para `main` (evita duplo disparo em push + PR aberto)
-- **`release.yml`** — em tag `v*`: pytest → docker build/push → Trivy scan (bloqueia em HIGH/CRITICAL) → atualiza `versions.json` → GitHub Release com `claude-jail.py` em anexo
-
-### `versions.json`
-
-Atualizado automaticamente pelo pipeline de release. Registra a imagem publicada mais recente: `{"image": "feliperibeiro95/claude-jail-code:vX.Y.Z"}`.
+- **`release.yml`** — em tag `v*`: pytest → docker build/push → Trivy scan (bloqueia em HIGH/CRITICAL) → GitHub Release com `claude-jail.py` em anexo
 
 ## Publicar nova versão
 

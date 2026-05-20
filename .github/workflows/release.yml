@@ -6,7 +6,24 @@ on:
       - 'v*'
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pytest
+        run: pip install pytest
+
+      - name: Run tests
+        run: pytest tests/ -v
+
   docker-build:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
@@ -49,7 +66,7 @@ jobs:
           severity: HIGH,CRITICAL
           trivyignores: docker/.trivyignore
 
-  update-config:
+  update-versions:
     needs: security-scan
     runs-on: ubuntu-latest
     permissions:
@@ -73,50 +90,17 @@ jobs:
           git commit -m "chore: update versions.json to ${{ needs.docker-build.outputs.tag }}"
           git push origin main
 
-  build-extension:
-    needs: update-config
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: extension
-
-      - name: Compile TypeScript
-        run: npm run compile
-        working-directory: extension
-
-      - name: Package extension
-        run: npm run package
-        working-directory: extension
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: vsix
-          path: extension/*.vsix
-
   create-release:
-    needs: build-extension
+    needs: update-versions
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: vsix
-          path: extension
+      - uses: actions/checkout@v4
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: extension/*.vsix
+          files: claude-jail.py
           generate_release_notes: true

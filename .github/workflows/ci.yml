@@ -5,22 +5,23 @@ on:
     branches:
       - main
       - dev
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  lint-and-check:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: '22'
+          python-version: '3.11'
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: extension
+      - name: Install pytest
+        run: pip install pytest
 
-      - name: TypeScript compile check
-        run: npm run compile
-        working-directory: extension
+      - name: Run tests
+        run: pytest tests/ -v

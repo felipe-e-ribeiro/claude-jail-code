@@ -1,96 +1,80 @@
-# Claude Container
+# claude-jail
 
-Ambiente para rodar o Claude Code em containers Docker isolados, um por projeto. Inclui uma extensão para VS Code e forks compatíveis (Anti-gravity, etc.) que cria e conecta ao container com um clique.
-
----
-
-## Estrutura
-
-```
-claude-container/
-├── docker/
-│   ├── Dockerfile           ← imagem claude-code:base (ubuntu:24.04 + Node 22 + Claude Code)
-│   ├── entrypoint.sh        ← atualiza Claude Code a cada container start
-│   ├── docker-compose.yml   ← Portainer CE para visualização (localhost:9000)
-│   └── stack-template.yml   ← template manual para criar containers via Portainer
-├── extension/
-│   └── src/
-│       ├── extension.ts     ← status bar, menu, orquestração
-│       ├── container.ts     ← wrapper Docker CLI
-│       └── remote.ts        ← bridge Dev Containers API
-├── .github/workflows/
-│   └── build-extension.yml  ← gera .vsix em cada release
-└── LICENSE
-```
+Script Python cross-platform para rodar o Claude Code em containers Docker isolados. Um único comando transforma qualquer diretório numa sessão isolada do Claude, sem estado residual.
 
 ---
 
-## Setup inicial
+## Requisitos
 
-### 1. Docker Desktop
+- Python 3.8+
+- Docker Desktop (Linux, Mac ou Windows)
 
-Settings → General → marque **"Start Docker Desktop when you log in"**.
+---
 
-### 2. Build da imagem base
+## Uso
 
-```powershell
+```bash
+# Sessão interativa no diretório atual
+python claude-jail.py
+
+# Pular atualização do Claude Code ao subir o container
+python claude-jail.py --no-update
+
+# Rodar sem prompts de permissão
+python claude-jail.py --dangerously-skip-permissions
+
+# Passar argumentos direto ao Claude
+python claude-jail.py -- --model claude-opus-4-7
+
+# Usar uma versão específica da imagem
+python claude-jail.py --image feliperibeiro95/claude-jail-code:v0.1.0
+```
+
+O container monta automaticamente:
+- `~/.claude` → `/root/.claude` (credenciais OAuth e sessões)
+- Diretório atual → `/workspace` (seu projeto)
+
+O container é removido automaticamente ao sair (`--rm`).
+
+---
+
+## Imagem Docker
+
+A imagem base é publicada no Docker Hub: `feliperibeiro95/claude-jail-code`
+
+Para build local:
+
+```bash
 docker build -t claude-code:base ./docker
 ```
 
-### 3. Portainer (opcional — só para visualização)
+---
 
-```powershell
-docker-compose -f docker/docker-compose.yml up -d
+## Desenvolvimento
+
+### Rodar os testes
+
+```bash
+pip install pytest
+pytest tests/ -v
 ```
 
-Acesse `localhost:9000` e crie o usuário admin imediatamente (timeout de segurança).
-> Se travar: `docker restart portainer`
+### Publicar nova versão
+
+```bash
+git tag v0.x.0
+git push origin v0.x.0
+```
+
+O GitHub Actions executa: pytest → docker build/push → Trivy scan → GitHub Release com `claude-jail.py` em anexo.
 
 ---
 
-## Extensão
+## Compatibilidade
 
-### Instalar
-
-1. Baixe o `.vsix` mais recente em [Releases](../../releases)
-2. No editor: `Extensions → ⋯ → Install from VSIX...`
-
-### Usar
-
-Clique em **⬡ Claude Container** na status bar (canto inferior esquerdo) e escolha:
-
-- **▶ Abrir no Claude Container** — cria o container se necessário e conecta via Dev Containers
-- **■ Parar container** — para o container do projeto atual
-- **⟳ Recriar container** — remove e recria (útil após mudar a imagem base)
-
-O container é nomeado `claude-<nome-da-pasta>` e monta automaticamente:
-- A pasta aberta no editor → `/workspace`
-- `~/.claude` do Windows → `/root/.clone` (credenciais e sessões)
-
-### Pré-requisitos da extensão
-
-- Docker Desktop rodando
-- Imagem `claude-code:base` buildada
-- Extensão **Dev Containers** (`ms-vscode-remote.remote-containers`) instalada
-
----
-
-## Publicar uma nova versão da extensão
-
-```powershell
-git tag v0.2.0
-git push origin v0.2.0
-```
-
-O GitHub Actions compila e publica o `.vsix` automaticamente na Release.
-
----
-
-## Atualizar a imagem base
-
-```powershell
-# Rebuild com a versão mais recente do Claude Code
-docker build --no-cache -t claude-code:base ./docker
-
-# Recriar containers existentes via extensão: ⬡ → Recriar container
-```
+| Plataforma | Suportado |
+|---|---|
+| Linux | ✓ |
+| macOS | ✓ |
+| Windows (PowerShell/CMD) | ✓ |
+| WSL | ✓ |

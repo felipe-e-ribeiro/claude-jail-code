@@ -4,71 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## O que é este repositório
 
-Script Python cross-platform para rodar o Claude Code em containers Docker isolados. Qualquer diretório pode ser "jailed" com um único comando, montando `~/.claude` e o diretório atual no container.
+Script Python cross-platform (`claude-jail.py`) que roda o Claude Code em containers Docker isolados. Um único comando transforma qualquer diretório numa sessão jailed do Claude, sem estado residual entre execuções.
 
-## Estrutura
+## Comandos principais
 
-```
-claude-jail.py           → script principal (Linux, Mac, Windows, WSL)
-tests/
-  test_claude_jail.py    → testes pytest
-docker/
-  Dockerfile             → imagem claude-code:base (ubuntu:24.04 + Node 22 + Claude Code)
-  entrypoint.sh          → atualiza Claude Code a cada start; aceita --no-update
-  .trivyignore           → CVEs aceitas no scan Trivy
-.github/workflows/
-  ci.yml                 → pytest em push para main/dev e PRs
-  release.yml            → on tag v*: pytest → docker build/push → Trivy scan → GitHub Release
-versions.json            → versão atual da imagem publicada
-```
-
-## Uso
+### Rodar testes
 
 ```bash
-# Sessão interativa no diretório atual
-python claude-jail.py
-
-# Pular atualização do Claude Code (mais rápido)
-python claude-jail.py --no-update
-
-# Sem prompts de permissão
-python claude-jail.py --dangerously-skip-permissions
-
-# Passar argumentos direto ao Claude
-python claude-jail.py -- --model claude-opus-4-7
-
-# Usar imagem específica
-python claude-jail.py --image feliperibeiro95/claude-jail-code:v0.1.0
+python3 -m pytest tests/ -v          # todos os testes
+python3 -m pytest tests/ -v -k "wsl" # filtrar por nome
 ```
 
-## Docker
+Não há dependências externas além do `pytest`. A suite usa apenas stdlib + mocks.
 
-### Build local
+### Build da imagem Docker
 
 ```bash
 docker build -t claude-code:base ./docker
 docker build --no-cache -t claude-code:base ./docker   # forçar atualização
 ```
 
-### O que o container monta
+### Usar o script
 
-- `~/.claude` → `/root/.claude:rw` — autenticação OAuth, sessões, configuração
-- `$PWD` → `/workspace:rw` — diretório atual do projeto
+```bash
+python3 claude-jail.py                              # sessão interativa
+python3 claude-jail.py --no-update                  # pula npm install no entrypoint
+python3 claude-jail.py --dangerously-skip-permissions
+python3 claude-jail.py -- --model claude-opus-4-7   # args passados ao Claude
+python3 claude-jail.py --image myrepo/img:v1.0      # imagem alternativa
+```
+
+## Arquitetura
+
+### `claude-jail.py`
+
+Três funções públicas, testáveis individualmente:
+
+- `is_wsl()` — detecta WSL via `/proc/version`
+- `to_docker_path(path)` — converte paths: no-op em Linux/Mac, `C:\...` → `/c/...` no Windows usando `PureWindowsPath` (funciona cross-platform nos testes)
+- `build_docker_cmd(...)` — monta a lista de argumentos para `docker run`
+
+`main(argv=None)` aceita `argv` explícito para facilitar testes sem mockar `sys.argv`.
+
+O container sempre roda com `--rm` (descartado ao sair) e monta:
+- `~/.claude` → `/root/.claude:rw` (OAuth, sessões)
+- `$PWD` → `/workspace:rw` (projeto)
+
+TTY: `-it` quando `stdin.isatty()` é True, `-i` caso contrário (CI/pipeline).
+
+### `docker/entrypoint.sh`
+
+Intercepta `--no-update` antes de repassar os demais args ao `claude`. Qualquer outro flag (incluindo `--dangerously-skip-permissions`) vai direto ao Claude sem tratamento especial no entrypoint.
+
+### Testes (`tests/test_claude_jail.py`)
+
+O arquivo usa `importlib.util` para importar `claude-jail.py` (hífen no nome impede import direto). Todos os testes de `to_docker_path` para Windows passam strings brutas — não `pathlib.Path` — pois `PureWindowsPath` parseia strings corretamente em qualquer plataforma.
+
+### CI/CD
+
+- **`ci.yml`** — só em `pull_request` para `main` (evita duplo disparo em push + PR aberto)
+- **`release.yml`** — em tag `v*`: pytest → docker build/push → Trivy scan (bloqueia em HIGH/CRITICAL) → atualiza `versions.json` → GitHub Release com `claude-jail.py` em anexo
+
+### `versions.json`
+
+Atualizado automaticamente pelo pipeline de release. Registra a imagem publicada mais recente: `{"image": "feliperibeiro95/claude-jail-code:vX.Y.Z"}`.
 
 ## Publicar nova versão
 
-Usar a skill `release` ou criar a tag manualmente:
+Usar a skill `release` (cuida de commit, push e PR) ou:
 
 ```bash
 git tag v0.x.0 && git push origin v0.x.0
 ```
 
-O GitHub Actions executa automaticamente: pytest → docker build/push → Trivy scan → GitHub Release com `claude-jail.py` em anexo.
-
-## Decisões de design
-
-- **`--rm` sempre**: container descartado ao sair — sem estado residual, verdadeiro jailing
-- **`~/.claude` como `:rw`**: Claude Code escreve em `~/.claude/projects/` para dados de sessão — `:ro` quebra
-- **Cross-platform**: `Path.home()` e `Path.cwd()` nativos; Windows paths convertidos para formato Docker via `PureWindowsPath` (`/c/Users/...`)
-- **TTY automático**: `-it` quando `stdin.isatty()` é True, `-i` em pipelines/CI
-- **`--no-update` interceptado pelo entrypoint**: não é repassado ao Claude; todos os outros args são passados diretamente
+O merge em `main` + criação da tag disparam o pipeline completo.

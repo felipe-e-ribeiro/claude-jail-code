@@ -1,15 +1,11 @@
 # claude-jail
 
-Script Python cross-platform para rodar o Claude Code em containers Docker isolados. Um único comando transforma qualquer diretório numa sessão isolada do Claude, sem estado residual.
-
----
+Script Python cross-platform para rodar o Claude Code em containers Docker isolados. Um único comando transforma qualquer diretório numa sessão jailed do Claude — sem estado residual entre execuções.
 
 ## Requisitos
 
 - Python 3.8+
 - Docker Desktop (Linux, Mac ou Windows)
-
----
 
 ## Uso
 
@@ -34,41 +30,7 @@ O container monta automaticamente:
 - `~/.claude` → `/root/.claude` (credenciais OAuth e sessões)
 - Diretório atual → `/workspace` (seu projeto)
 
-O container é removido automaticamente ao sair (`--rm`).
-
----
-
-## Imagem Docker
-
-A imagem base é publicada no Docker Hub: `feliperibeiro95/claude-jail-code`
-
-Para build local:
-
-```bash
-docker build -t claude-code:base ./docker
-```
-
----
-
-## Desenvolvimento
-
-### Rodar os testes
-
-```bash
-pip install pytest
-pytest tests/ -v
-```
-
-### Publicar nova versão
-
-```bash
-git tag v0.x.0
-git push origin v0.x.0
-```
-
-O GitHub Actions executa: pytest → docker build/push → Trivy scan → GitHub Release com `claude-jail.py` em anexo.
-
----
+O container é descartado ao sair (`--rm`).
 
 ## Compatibilidade
 
@@ -78,3 +40,31 @@ O GitHub Actions executa: pytest → docker build/push → Trivy scan → GitHub
 | macOS | ✓ |
 | Windows (PowerShell/CMD) | ✓ |
 | WSL | ✓ |
+
+## Imagem Docker
+
+Publicada no Docker Hub: `feliperibeiro95/claude-jail-code`
+
+Para build local:
+
+```bash
+docker build -t claude-code:base ./docker
+```
+
+## Desenvolvimento
+
+### Rodar os testes
+
+```bash
+pip install pytest
+python3 -m pytest tests/ -v
+```
+
+### Publicar nova versão
+
+```bash
+git tag v0.x.0
+git push origin v0.x.0
+```
+
+Pipeline automático: pytest → docker build/push → Trivy scan → GitHub Release com `claude-jail.py` em anexo.

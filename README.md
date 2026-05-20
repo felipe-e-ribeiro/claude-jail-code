@@ -1,96 +1,70 @@
-# Claude Container
+# claude-jail
 
-Ambiente para rodar o Claude Code em containers Docker isolados, um por projeto. Inclui uma extensão para VS Code e forks compatíveis (Anti-gravity, etc.) que cria e conecta ao container com um clique.
+Script Python cross-platform para rodar o Claude Code em containers Docker isolados. Um único comando transforma qualquer diretório numa sessão jailed do Claude — sem estado residual entre execuções.
 
----
+## Requisitos
 
-## Estrutura
+- Python 3.8+
+- Docker Desktop (Linux, Mac ou Windows)
 
+## Uso
+
+```bash
+# Sessão interativa no diretório atual
+python claude-jail.py
+
+# Pular atualização do Claude Code ao subir o container
+python claude-jail.py --no-update
+
+# Rodar sem prompts de permissão
+python claude-jail.py --dangerously-skip-permissions
+
+# Passar argumentos direto ao Claude
+python claude-jail.py -- --model claude-opus-4-7
+
+# Usar uma versão específica da imagem
+python claude-jail.py --image feliperibeiro95/claude-jail-code:v0.1.0
 ```
-claude-container/
-├── docker/
-│   ├── Dockerfile           ← imagem claude-code:base (ubuntu:24.04 + Node 22 + Claude Code)
-│   ├── entrypoint.sh        ← atualiza Claude Code a cada container start
-│   ├── docker-compose.yml   ← Portainer CE para visualização (localhost:9000)
-│   └── stack-template.yml   ← template manual para criar containers via Portainer
-├── extension/
-│   └── src/
-│       ├── extension.ts     ← status bar, menu, orquestração
-│       ├── container.ts     ← wrapper Docker CLI
-│       └── remote.ts        ← bridge Dev Containers API
-├── .github/workflows/
-│   └── build-extension.yml  ← gera .vsix em cada release
-└── LICENSE
-```
 
----
+O container monta automaticamente:
+- `~/.claude` → `/root/.claude` (credenciais OAuth e sessões)
+- Diretório atual → `/workspace` (seu projeto)
 
-## Setup inicial
+O container é descartado ao sair (`--rm`).
 
-### 1. Docker Desktop
+## Compatibilidade
 
-Settings → General → marque **"Start Docker Desktop when you log in"**.
+| Plataforma | Suportado |
+|---|---|
+| Linux | ✓ |
+| macOS | ✓ |
+| Windows (PowerShell/CMD) | ✓ |
+| WSL | ✓ |
 
-### 2. Build da imagem base
+## Imagem Docker
 
-```powershell
+Publicada no Docker Hub: `feliperibeiro95/claude-jail-code`
+
+Para build local:
+
+```bash
 docker build -t claude-code:base ./docker
 ```
 
-### 3. Portainer (opcional — só para visualização)
+## Desenvolvimento
 
-```powershell
-docker-compose -f docker/docker-compose.yml up -d
+### Rodar os testes
+
+```bash
+pip install pytest
+python3 -m pytest tests/ -v
 ```
 
-Acesse `localhost:9000` e crie o usuário admin imediatamente (timeout de segurança).
-> Se travar: `docker restart portainer`
+### Publicar nova versão
 
----
-
-## Extensão
-
-### Instalar
-
-1. Baixe o `.vsix` mais recente em [Releases](../../releases)
-2. No editor: `Extensions → ⋯ → Install from VSIX...`
-
-### Usar
-
-Clique em **⬡ Claude Container** na status bar (canto inferior esquerdo) e escolha:
-
-- **▶ Abrir no Claude Container** — cria o container se necessário e conecta via Dev Containers
-- **■ Parar container** — para o container do projeto atual
-- **⟳ Recriar container** — remove e recria (útil após mudar a imagem base)
-
-O container é nomeado `claude-<nome-da-pasta>` e monta automaticamente:
-- A pasta aberta no editor → `/workspace`
-- `~/.claude` do Windows → `/root/.clone` (credenciais e sessões)
-
-### Pré-requisitos da extensão
-
-- Docker Desktop rodando
-- Imagem `claude-code:base` buildada
-- Extensão **Dev Containers** (`ms-vscode-remote.remote-containers`) instalada
-
----
-
-## Publicar uma nova versão da extensão
-
-```powershell
-git tag v0.2.0
-git push origin v0.2.0
+```bash
+git tag v0.x.0
+git push origin v0.x.0
 ```
 
-O GitHub Actions compila e publica o `.vsix` automaticamente na Release.
-
----
-
-## Atualizar a imagem base
-
-```powershell
-# Rebuild com a versão mais recente do Claude Code
-docker build --no-cache -t claude-code:base ./docker
-
-# Recriar containers existentes via extensão: ⬡ → Recriar container
-```
+Pipeline automático: pytest → docker build/push → Trivy scan → GitHub Release com `claude-jail.py` em anexo.

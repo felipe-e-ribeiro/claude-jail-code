@@ -71,6 +71,7 @@ class TestBuildDockerCmd:
         defaults = dict(
             image="test-image:latest",
             claude_dir=Path("/home/user/.claude"),
+            agents_dir=Path("/home/user/.agents"),
             workspace=Path("/home/user/project"),
             is_tty=False,
             no_update=False,
@@ -103,6 +104,11 @@ class TestBuildDockerCmd:
         cmd = self._cmd(claude_dir=Path("/home/user/.claude"))
         volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
         assert any(":/root/.claude:rw" in v for v in volumes)
+
+    def test_agents_dir_mounted_at_root_agents(self):
+        cmd = self._cmd(agents_dir=Path("/home/user/.agents"))
+        volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
+        assert any(":/root/.agents:rw" in v for v in volumes)
 
     def test_workspace_mounted_at_workspace(self):
         cmd = self._cmd(workspace=Path("/home/user/myproject"))

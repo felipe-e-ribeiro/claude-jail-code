@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     python3 \
     unzip \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
@@ -18,12 +19,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 RUN npm install -g @anthropic-ai/claude-code
 
-RUN useradd -m -u 1000 -s /bin/bash claude
+RUN useradd -m -u 1000 -s /bin/bash user \
+    && echo "user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-RUN mkdir -p /workspace && chown claude:claude /workspace
+RUN mkdir -p /workspace && chown user:user /workspace
 
 WORKDIR /workspace
 

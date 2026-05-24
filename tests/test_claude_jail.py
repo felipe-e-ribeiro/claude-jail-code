@@ -103,12 +103,12 @@ class TestBuildDockerCmd:
     def test_claude_dir_mounted_at_root_claude(self):
         cmd = self._cmd(claude_dir=Path("/home/user/.claude"))
         volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
-        assert any(":/home/claude/.claude:rw" in v for v in volumes)
+        assert any(":/home/user/.claude:rw" in v for v in volumes)
 
     def test_agents_dir_mounted_at_root_agents(self):
         cmd = self._cmd(agents_dir=Path("/home/user/.agents"))
         volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
-        assert any(":/home/claude/.agents:rw" in v for v in volumes)
+        assert any(":/home/user/.agents:rw" in v for v in volumes)
 
     def test_workspace_mounted_at_workspace(self):
         cmd = self._cmd(workspace=Path("/home/user/myproject"))

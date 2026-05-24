@@ -19,7 +19,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 RUN npm install -g @anthropic-ai/claude-code
 
-RUN useradd -m -u 1000 -s /bin/bash user \
+RUN useradd -m -u 1001 -s /bin/bash user \
     && echo "user ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 COPY entrypoint.sh /entrypoint.sh

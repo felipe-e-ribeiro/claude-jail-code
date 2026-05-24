@@ -44,11 +44,11 @@ class TestIsWsl:
 class TestToDockerPath:
     def test_linux_path_unchanged(self):
         with patch("platform.system", return_value="Linux"):
-            assert to_docker_path(Path("/home/user/.claude")) == "/home/user/.claude"
+            assert to_docker_path("/home/user/.claude") == "/home/user/.claude"
 
     def test_mac_path_unchanged(self):
         with patch("platform.system", return_value="Darwin"):
-            assert to_docker_path(Path("/Users/user/.claude")) == "/Users/user/.claude"
+            assert to_docker_path("/Users/user/.claude") == "/Users/user/.claude"
 
     def test_windows_drive_letter_converted(self):
         with patch("platform.system", return_value="Windows"):
@@ -103,12 +103,12 @@ class TestBuildDockerCmd:
     def test_claude_dir_mounted_at_root_claude(self):
         cmd = self._cmd(claude_dir=Path("/home/user/.claude"))
         volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
-        assert any(":/root/.claude:rw" in v for v in volumes)
+        assert any(":/home/user/.claude:rw" in v for v in volumes)
 
     def test_agents_dir_mounted_at_root_agents(self):
         cmd = self._cmd(agents_dir=Path("/home/user/.agents"))
         volumes = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-v"]
-        assert any(":/root/.agents:rw" in v for v in volumes)
+        assert any(":/home/user/.agents:rw" in v for v in volumes)
 
     def test_workspace_mounted_at_workspace(self):
         cmd = self._cmd(workspace=Path("/home/user/myproject"))

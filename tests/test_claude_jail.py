@@ -44,11 +44,11 @@ class TestIsWsl:
 class TestToDockerPath:
     def test_linux_path_unchanged(self):
         with patch("platform.system", return_value="Linux"):
-            assert to_docker_path(Path("/home/user/.claude")) == "/home/user/.claude"
+            assert to_docker_path("/home/user/.claude") == "/home/user/.claude"
 
     def test_mac_path_unchanged(self):
         with patch("platform.system", return_value="Darwin"):
-            assert to_docker_path(Path("/Users/user/.claude")) == "/Users/user/.claude"
+            assert to_docker_path("/Users/user/.claude") == "/Users/user/.claude"
 
     def test_windows_drive_letter_converted(self):
         with patch("platform.system", return_value="Windows"):
